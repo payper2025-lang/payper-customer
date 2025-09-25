@@ -158,38 +158,40 @@ export default function Home() {
       <main className="flex-1 container px-4 py-6 space-y-6">
         {/* Balance Card */}
         <Card className="bg-card shadow-none border-0">
-          <div className="flex items-start gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
-              onClick={() => simulateWaiterCall(profile?.table_id || "")}
-            >
-              <HandPlatter className="h-4 w-4 mr-2" />
-              {/* Call Waiter */}
-              Llamar Mozo
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
-              onClick={() => simulateBillRequest(profile?.table_id || "")}
-            >
-              <ReceiptIcon className="h-4 w-4 mr-2" />
-              {/* Bill request */}
-              Pedir Cuenta
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
-              onClick={() => simulateLeavingTip(profile?.table_id || "")}
-            >
-              {/* Leaving tip */}
-              <HandCoins className="h-4 w-4 mr-2" />
-              Dejar Propina
-            </Button>
-          </div>
+          {profile?.table_id && (
+            <div className="flex items-start gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
+                onClick={() => simulateWaiterCall(profile?.table_id || "")}
+              >
+                <HandPlatter className="h-4 w-4 mr-2" />
+                {/* Call Waiter */}
+                Llamar Mozo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
+                onClick={() => simulateBillRequest(profile?.table_id || "")}
+              >
+                <ReceiptIcon className="h-4 w-4 mr-2" />
+                {/* Bill request */}
+                Pedir Cuenta
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-yellow-800/80 border-yellow-500 text-yellow-100 hover:bg-yellow-700 hover:border-yellow-400 h-8 px-2 text-xs"
+                onClick={() => simulateLeavingTip(profile?.table_id || "")}
+              >
+                {/* Leaving tip */}
+                <HandCoins className="h-4 w-4 mr-2" />
+                Dejar Propina
+              </Button>
+            </div>
+          )}
           <CardContent className="p-6">
             <div className="flex justify-between">
               <div>
