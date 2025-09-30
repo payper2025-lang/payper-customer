@@ -105,18 +105,32 @@ export async function updateTableStatus(
   tableId: string,
   newStatus: DatabaseTableStatus
 ): Promise<void> {
+  console.log('Updating table status:', { tableId, newStatus })
+
   try {
-    const { error } = await supabase
+    const updateData: any = {
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }
+
+    // Reset current_guests to 0 when table becomes free
+    if (newStatus === "free") {
+      updateData.current_guests = 0
+    }
+
+    const { data, error } = await supabase
       .from("tables")
-      .update({
-        status: newStatus,
-        current_guests: newStatus === "free" ? 0 : undefined,
-      })
-      .eq("id", tableId);
+      .update(updateData)
+      .eq("id", tableId)
+      .select()
 
     if (error) {
       console.error("Error updating table status:", error);
       throw error;
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error(`No table found with ID: ${tableId}`)
     }
   } catch (error) {
     console.error("Failed to update table status:", error);
