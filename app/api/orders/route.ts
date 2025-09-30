@@ -83,7 +83,7 @@ export const POST = async (req: NextRequest) => {
       await createTableNotification(tableId, "new_order");
 
       // Update table status to "producing"
-      await updateTableStatus(tableId, "producing");
+      await updateTableStatus(tableId, "waiting_order");
     }
 
     if (error) {
