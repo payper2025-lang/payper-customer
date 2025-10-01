@@ -51,10 +51,10 @@ export const POST = async (req: Request) => {
                 pending: `${process.env.NEXT_PUBLIC_WEB_URL}/payment/pending`,
             },
             // Remove auto_return as it's causing issues
-            notification_url: `${process.env.WEB_URL}/api/payment/webhook`,
+            notification_url: `${process.env.NEXT_PUBLIC_WEB_URL}/api/payment/webhook`,
             statement_descriptor: 'Papel Restaurant'
         };
-        
+
 
         console.log('preference data ---------->', preferenceData)
 
@@ -77,14 +77,14 @@ export const POST = async (req: Request) => {
             paymentMethodId: '',
             installments: 1,
             dateCreated: new Date().toISOString(),
-            paymentUrl: mpResponse.init_point || ''
-            // payment_url: mpResponse.sandbox_init_point || '',
+            // paymentUrl: mpResponse.init_point || ''
+            payment_url: mpResponse.sandbox_init_point || '',
         };
 
         const { data: transactionUpdate, error: transactionError } = await supabase.from("transactions")
             .update({
-                payment_url: mpResponse.init_point || '',
-                // payment_url: mpResponse.sandbox_init_point || '',
+                // payment_url: mpResponse.init_point || '',
+                payment_url: mpResponse.sandbox_init_point || '',
                 preference_id: mpResponse.id,
             })
             .eq("id", transaction.id);
