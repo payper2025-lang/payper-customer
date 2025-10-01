@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { PaymentWebhookData } from "@/utils/types";
 import { createClient } from "@/utils/supabase/client";
+import { updateTableSessionTotalSpent } from "../../tables/route";
 
 const supabase = createClient();
 
@@ -99,6 +100,17 @@ export async function POST(request: NextRequest) {
               },
               { status: 500 }
             );
+          }
+
+          // If this is a table order, update the session total_spent
+          if (orderUpdate?.is_table_order && orderUpdate?.table_id) {
+            try {
+              await updateTableSessionTotalSpent(orderUpdate.table_id);
+              console.log(`✅ Updated table session total_spent for table ${orderUpdate.table_id}`);
+            } catch (error) {
+              console.error("Error updating table session total_spent:", error);
+              // Don't fail the webhook if this fails, just log it
+            }
           }
         }
 

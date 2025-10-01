@@ -171,6 +171,119 @@ export async function createTableNotification(
 }
 
 /**
+ * Calculate and update the total_spent for an active table session
+ * Based on business rules:
+ * - For cash/balance: Always include orders.total_amount
+ * - For mercadopago: Only include if transaction.status = 'approved' and type = 'order'
+ */
+export async function updateTableSessionTotalSpent(
+  tableId: string
+): Promise<number> {
+  try {
+    console.log(`💰 Calculating total_spent for table: ${tableId}`)
+
+    // Get the active session for this table
+    const { data: activeSessions, error: sessionError } = await supabase
+      .from('table_sessions')
+      .select('id')
+      .eq('table_id', tableId)
+      .eq('status', 'active')
+      .order('start_time', { ascending: false })
+      .limit(1)
+
+    if (sessionError) {
+      console.error('❌ Error fetching active session:', sessionError)
+      throw sessionError
+    }
+
+    if (!activeSessions || activeSessions.length === 0) {
+      console.log(`⚠️ No active session found for table ${tableId}`)
+      return 0
+    }
+
+    const activeSessionId = activeSessions[0].id
+
+    // Get all orders for this table through table_orders
+    const { data: tableOrders, error: ordersError } = await supabase
+      .from('table_orders')
+      .select(`
+        order_id,
+        orders!inner (
+          id,
+          total_amount,
+          payment_method,
+          is_table_order,
+          table_id
+        )
+      `)
+      .eq('table_id', tableId)
+
+    if (ordersError) {
+      console.error('❌ Error fetching table orders:', ordersError)
+      throw ordersError
+    }
+
+    if (!tableOrders || tableOrders.length === 0) {
+      console.log(`ℹ️ No orders found for table ${tableId}`)
+      // Update session with 0
+      await supabase
+        .from('table_sessions')
+        .update({ total_spent: 0 })
+        .eq('id', activeSessionId)
+      return 0
+    }
+
+    let totalSpent = 0
+
+    // Process each order based on payment method
+    for (const tableOrder of tableOrders) {
+      const order = tableOrder.orders as any
+
+      if (order.payment_method === 'cash' || order.payment_method === 'balance') {
+        // Rule: Always include for cash/balance
+        totalSpent += Number(order.total_amount)
+        console.log(`  ✅ Added ${order.payment_method} order ${order.id}: $${order.total_amount}`)
+      } else if (order.payment_method === 'mercadopago') {
+        // Rule: Only include if transaction is approved
+        const { data: transaction, error: txError } = await supabase
+          .from('transactions')
+          .select('status, amount, type')
+          .eq('order_id', order.id)
+          .eq('type', 'order')
+          .single()
+
+        if (!txError && transaction && transaction.status === 'approved') {
+          totalSpent += Number(transaction.amount)
+          console.log(`  ✅ Added mercadopago order ${order.id}: $${transaction.amount} (approved)`)
+        } else {
+          console.log(`  ⏳ Skipped mercadopago order ${order.id}: ${transaction?.status || 'no transaction'}`)
+        }
+      }
+    }
+
+    // Update the active session with the calculated total
+    const { error: updateError } = await supabase
+      .from('table_sessions')
+      .update({
+        total_spent: totalSpent,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', activeSessionId)
+
+    if (updateError) {
+      console.error('❌ Error updating session total_spent:', updateError)
+      throw updateError
+    }
+
+    console.log(`✅ Updated session ${activeSessionId} total_spent: $${totalSpent}`)
+    return totalSpent
+  } catch (error) {
+    console.error('Failed to update table session total_spent:', error)
+    throw error
+  }
+}
+
+/**
  * Update table status
  */
 export async function updateTableStatus(

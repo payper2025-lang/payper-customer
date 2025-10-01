@@ -7,6 +7,7 @@ import {
   createTableOrder,
   createTableSession,
   updateTableStatus,
+  updateTableSessionTotalSpent,
 } from "../tables/route";
 
 const supabase = createClient();
@@ -88,6 +89,9 @@ export const POST = async (req: NextRequest) => {
 
       // Update table status to "occupied"
       await updateTableStatus(tableId, "occupied");
+
+      // Calculate and update total_spent for the active session
+      await updateTableSessionTotalSpent(tableId);
     }
 
     if (error) {
