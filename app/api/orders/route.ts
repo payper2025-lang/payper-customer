@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import {
   createTableNotification,
   createTableOrder,
+  createTableSession,
   updateTableStatus,
 } from "../tables/route";
 
@@ -79,11 +80,14 @@ export const POST = async (req: NextRequest) => {
       // Create table order record
       await createTableOrder(tableId, data.id);
 
+      // Create table session record if it doesn't exist
+      await createTableSession(tableId);
+
       // Create table notification record for new order
       await createTableNotification(tableId, "new_order");
 
-      // Update table status to "producing"
-      await updateTableStatus(tableId, "waiting_order");
+      // Update table status to "occupied"
+      await updateTableStatus(tableId, "occupied");
     }
 
     if (error) {
