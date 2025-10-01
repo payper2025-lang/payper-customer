@@ -54,6 +54,9 @@ export const POST = async (req: Request) => {
             notification_url: `${process.env.WEB_URL}/api/payment/webhook`,
             statement_descriptor: 'Papel Restaurant'
         };
+        
+
+        console.log('preference data ---------->', preferenceData)
 
         const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
             method: 'POST',
@@ -75,12 +78,13 @@ export const POST = async (req: Request) => {
             installments: 1,
             dateCreated: new Date().toISOString(),
             paymentUrl: mpResponse.init_point || ''
-            // paymentUrl: mpResponse.sandbox_init_point || '',
+            // payment_url: mpResponse.sandbox_init_point || '',
         };
 
         const { data: transactionUpdate, error: transactionError } = await supabase.from("transactions")
             .update({
                 payment_url: mpResponse.init_point || '',
+                // payment_url: mpResponse.sandbox_init_point || '',
                 preference_id: mpResponse.id,
             })
             .eq("id", transaction.id);

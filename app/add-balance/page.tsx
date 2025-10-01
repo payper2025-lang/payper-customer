@@ -55,7 +55,9 @@ export default function AddBalancePage() {
       }),
     })
     const data = await res.json()
-    setPaymentLink(data.data.paymentUrl)
+
+    console.log('payment link -------->', data.data)
+    setPaymentLink(data.data.payment_url)
     setPaymentModal(true)
     setIsAddingBalance(false)
   }
