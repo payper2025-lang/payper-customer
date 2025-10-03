@@ -11,6 +11,7 @@ import React, {
 import { CartItem, Product, Gift, Order, Inventory } from "@/utils/types";
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/utils/supabase/client";
+import { getTableStatus } from "@/app/api/tables/route";
 
 interface AppContextType {
   cartItems: CartItem[];
@@ -24,7 +25,18 @@ interface AppContextType {
   fetchGifts: () => Promise<void>;
   fetchOrders: () => Promise<void>;
   fetchInventories: (barId: string) => Promise<void>;
+  currentTableStatus: DatabaseTableStatus;
+  fetchTableStatus: () => Promise<void>;
 }
+
+export type DatabaseTableStatus =
+  | "free"
+  | "occupied"
+  | "waiting_order"
+  | "producing"
+  | "delivered"
+  | "bill_requested"
+  | "paid";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -35,7 +47,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventories, setInventories] = useState<Inventory[]>([]);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const [currentTableStatus, setCurrentTableStatus] =
+    useState<DatabaseTableStatus>("free");
 
   const updateCartItems = useCallback(async (items: CartItem[]) => {
     setCartItems(items);
@@ -75,6 +89,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  const fetchTableStatus = useCallback(async () => {
+    try {
+      if (!profile?.table_id) return;
+      const tableStatus = await getTableStatus(profile?.table_id); // Fetch the table status from the database
+      setCurrentTableStatus(tableStatus as DatabaseTableStatus); // Set the table status in the state
+    } catch (error) {
+      console.error("Error fetching table:", error);
+    }
+  }, [profile?.table_id]);
+
   const fetchOrders = useCallback(async () => {
     if (!user?.id) return;
 
@@ -104,6 +128,32 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setInventories([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (!profile?.table_id) return;
+
+    const tableStatusChannel = supabase
+      .channel(`table_status_${profile?.table_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tables",
+          filter: `id=eq.${profile?.table_id}`,
+        },
+        (payload: any) => {
+          if (payload.new?.status) {
+            setCurrentTableStatus(payload.new.status);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tableStatusChannel);
+    };
+  }, [!profile?.table_id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -190,6 +240,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       fetchGifts,
       fetchOrders,
       fetchInventories,
+      currentTableStatus,
+      fetchTableStatus,
     }),
     [
       cartItems,
@@ -203,6 +255,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       fetchGifts,
       fetchOrders,
       fetchInventories,
+      currentTableStatus,
+      fetchTableStatus,
     ]
   );
 

@@ -19,7 +19,10 @@ import { Product } from "@/utils/types";
 import { useApp } from "@/context/AppContxt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatArgentineNumber } from "@/utils/utils";
-import { createTableNotification, updateTableStatus } from "../api/tables/route";
+import {
+  createTableNotification,
+  updateTableStatus,
+} from "../api/tables/route";
 
 export default function Home() {
   const router = useRouter();

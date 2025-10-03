@@ -17,10 +17,19 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { shortenId } from "@/utils/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+const statusColors = {
+  free: "bg-green-500 text-white border-green-400",
+  occupied: "bg-orange-500 text-white border-orange-400",
+  producing: "bg-blue-500 text-white border-blue-400",
+  bill_requested: "bg-red-500 text-white border-red-400",
+  paid: "bg-green-500 text-white border-green-400",
+  waiting_order: "bg-yellow-500 text-white border-yellow-400",
+  delivered: "bg-green-500 text-white border-green-400",
+} as const;
 
 export default function Header() {
   const router = useRouter();
-  const { cartItems } = useApp();
+  const { cartItems, currentTableStatus, fetchTableStatus } = useApp();
   const [showQrDialog, setShowQrDialog] = useState(false);
 
   const { user, profile } = useAuth();
@@ -34,6 +43,10 @@ export default function Header() {
     table: profile?.table?.table_number || "",
   };
 
+  useEffect(() => {
+    if (profile?.table_id) fetchTableStatus();
+  }, [profile?.table_id]);
+
   const getTotalItems = () => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
@@ -46,6 +59,8 @@ export default function Header() {
   const showUserQr = () => {
     setShowQrDialog(true);
   };
+
+  console.log("currentTableStatus ------->", currentTableStatus);
 
   return (
     <header className="sticky top-0 z-10 bg-background">
@@ -70,6 +85,14 @@ export default function Header() {
                     className="ml-2 py-0 h-5 bg-primary/10 text-primary border-0"
                   >
                     Mesa {userInfo.table}
+                  </Badge>
+                )}
+                {currentTableStatus && (
+                  <Badge
+                    variant="outline"
+                    className={`ml-2 py-0 h-5 bg-primary/10 text-primary border-0 ${statusColors[currentTableStatus]}`}
+                  >
+                    {currentTableStatus}
                   </Badge>
                 )}
               </div>

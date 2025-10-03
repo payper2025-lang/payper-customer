@@ -27,12 +27,12 @@ export type DatabaseTableStatus =
   | "paid";
 
 export interface TableSession {
-  id: string
-  table_id: string
-  start_time: string
-  end_time: string | null
-  total_spent: number
-  status: 'active' | 'closed'
+  id: string;
+  table_id: string;
+  start_time: string;
+  end_time: string | null;
+  total_spent: number;
+  status: "active" | "closed";
 }
 
 export async function createTableOrder(
@@ -79,59 +79,61 @@ export async function createTableOrder(
  * 3. If a closed session exists, create a new active session
  * 4. If no session exists, create a new active session
  */
-export async function createTableSession(tableId: string): Promise<TableSession> {
+export async function createTableSession(
+  tableId: string
+): Promise<TableSession> {
   try {
     // Check if there's already a session for this table (active or closed)
     // Get the most recent session ordered by start_time
     const { data: existingSessions, error: checkError } = await supabase
-      .from('table_sessions')
-      .select('*')
-      .eq('table_id', tableId)
-      .order('start_time', { ascending: false })
-      .limit(1)
+      .from("table_sessions")
+      .select("*")
+      .eq("table_id", tableId)
+      .order("start_time", { ascending: false })
+      .limit(1);
 
     if (checkError) {
-      console.error('❌ Error checking existing sessions:', checkError)
-      throw checkError
+      console.error("❌ Error checking existing sessions:", checkError);
+      throw checkError;
     }
 
     // If a session exists, check its status
     if (existingSessions && existingSessions.length > 0) {
-      const latestSession = existingSessions[0] as TableSession
+      const latestSession = existingSessions[0] as TableSession;
 
       // Rule 2: If active session exists, return it (don't create new)
-      if (latestSession.status === 'active') {
-        return latestSession
+      if (latestSession.status === "active") {
+        return latestSession;
       }
     }
 
     // Create a new active session
-    const startTime = new Date()
+    const startTime = new Date();
     const { data, error } = await supabase
-      .from('table_sessions')
+      .from("table_sessions")
       .insert({
         table_id: tableId,
         start_time: startTime.toISOString(),
         end_time: null,
         total_spent: 0,
-        status: 'active'
+        status: "active",
       })
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('❌ Error creating table session:', error)
-      throw error
+      console.error("❌ Error creating table session:", error);
+      throw error;
     }
 
     if (!data) {
-      throw new Error('No data returned from table session creation')
+      throw new Error("No data returned from table session creation");
     }
 
-    return data
+    return data;
   } catch (error) {
-    console.error('Failed to create table session:', error)
-    throw error
+    console.error("Failed to create table session:", error);
+    throw error;
   }
 }
 
@@ -143,7 +145,6 @@ export async function createTableNotification(
   type: "waiter_call" | "bill_request" | "special_request" | "new_order"
 ): Promise<TableNotification> {
   try {
-
     const { data, error } = await supabase
       .from("table_notifications")
       .insert({
@@ -180,33 +181,34 @@ export async function updateTableSessionTotalSpent(
   tableId: string
 ): Promise<number> {
   try {
-    console.log(`💰 Calculating total_spent for table: ${tableId}`)
+    console.log(`💰 Calculating total_spent for table: ${tableId}`);
 
     // Get the active session for this table
     const { data: activeSessions, error: sessionError } = await supabase
-      .from('table_sessions')
-      .select('id')
-      .eq('table_id', tableId)
-      .eq('status', 'active')
-      .order('start_time', { ascending: false })
-      .limit(1)
+      .from("table_sessions")
+      .select("id")
+      .eq("table_id", tableId)
+      .eq("status", "active")
+      .order("start_time", { ascending: false })
+      .limit(1);
 
     if (sessionError) {
-      console.error('❌ Error fetching active session:', sessionError)
-      throw sessionError
+      console.error("❌ Error fetching active session:", sessionError);
+      throw sessionError;
     }
 
     if (!activeSessions || activeSessions.length === 0) {
-      console.log(`⚠️ No active session found for table ${tableId}`)
-      return 0
+      console.log(`⚠️ No active session found for table ${tableId}`);
+      return 0;
     }
 
-    const activeSessionId = activeSessions[0].id
+    const activeSessionId = activeSessions[0].id;
 
     // Get all orders for this table through table_orders
     const { data: tableOrders, error: ordersError } = await supabase
-      .from('table_orders')
-      .select(`
+      .from("table_orders")
+      .select(
+        `
         order_id,
         orders!inner (
           id,
@@ -215,71 +217,83 @@ export async function updateTableSessionTotalSpent(
           is_table_order,
           table_id
         )
-      `)
-      .eq('table_id', tableId)
+      `
+      )
+      .eq("table_id", tableId);
 
     if (ordersError) {
-      console.error('❌ Error fetching table orders:', ordersError)
-      throw ordersError
+      console.error("❌ Error fetching table orders:", ordersError);
+      throw ordersError;
     }
 
     if (!tableOrders || tableOrders.length === 0) {
-      console.log(`ℹ️ No orders found for table ${tableId}`)
+      console.log(`ℹ️ No orders found for table ${tableId}`);
       // Update session with 0
       await supabase
-        .from('table_sessions')
+        .from("table_sessions")
         .update({ total_spent: 0 })
-        .eq('id', activeSessionId)
-      return 0
+        .eq("id", activeSessionId);
+      return 0;
     }
 
-    let totalSpent = 0
+    let totalSpent = 0;
 
     // Process each order based on payment method
     for (const tableOrder of tableOrders) {
-      const order = tableOrder.orders as any
+      const order = tableOrder.orders as any;
 
-      if (order.payment_method === 'cash' || order.payment_method === 'balance') {
+      if (
+        order.payment_method === "cash" ||
+        order.payment_method === "balance"
+      ) {
         // Rule: Always include for cash/balance
-        totalSpent += Number(order.total_amount)
-        console.log(`  ✅ Added ${order.payment_method} order ${order.id}: $${order.total_amount}`)
-      } else if (order.payment_method === 'mercadopago') {
+        totalSpent += Number(order.total_amount);
+        console.log(
+          `  ✅ Added ${order.payment_method} order ${order.id}: $${order.total_amount}`
+        );
+      } else if (order.payment_method === "mercadopago") {
         // Rule: Only include if transaction is approved
         const { data: transaction, error: txError } = await supabase
-          .from('transactions')
-          .select('status, amount, type')
-          .eq('order_id', order.id)
-          .eq('type', 'order')
-          .single()
+          .from("transactions")
+          .select("status, amount, type")
+          .eq("order_id", order.id)
+          .eq("type", "order")
+          .single();
 
-        if (!txError && transaction && transaction.status === 'approved') {
-          totalSpent += Number(transaction.amount)
-          console.log(`  ✅ Added mercadopago order ${order.id}: $${transaction.amount} (approved)`)
+        if (!txError && transaction && transaction.status === "approved") {
+          totalSpent += Number(transaction.amount);
+          console.log(
+            `  ✅ Added mercadopago order ${order.id}: $${transaction.amount} (approved)`
+          );
         } else {
-          console.log(`  ⏳ Skipped mercadopago order ${order.id}: ${transaction?.status || 'no transaction'}`)
+          console.log(
+            `  ⏳ Skipped mercadopago order ${order.id}: ${transaction?.status || "no transaction"}`
+          );
         }
       }
     }
 
     // Update the active session with the calculated total
     const { error: updateError } = await supabase
-      .from('table_sessions')
+      .from("table_sessions")
       .update({
         total_spent: totalSpent,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', activeSessionId)
+      .eq("id", activeSessionId);
 
     if (updateError) {
-      console.error('❌ Error updating session total_spent:', updateError)
-      throw updateError
+      console.error("❌ Error updating session total_spent:", updateError);
+      throw updateError;
     }
 
-    console.log(`✅ Updated session ${activeSessionId} total_spent: $${totalSpent}`)
-    return totalSpent
+    console.log(
+      `✅ Updated session ${activeSessionId} total_spent: $${totalSpent}`
+    );
+    return totalSpent;
   } catch (error) {
-    console.error('Failed to update table session total_spent:', error)
-    throw error
+    console.error("Failed to update table session total_spent:", error);
+    throw error;
   }
 }
 
@@ -290,24 +304,24 @@ export async function updateTableStatus(
   tableId: string,
   newStatus: DatabaseTableStatus
 ): Promise<void> {
-  console.log('Updating table status:', { tableId, newStatus })
+  console.log("Updating table status:", { tableId, newStatus });
 
   try {
     const updateData: any = {
       status: newStatus,
-      updated_at: new Date().toISOString()
-    }
+      updated_at: new Date().toISOString(),
+    };
 
     // Reset current_guests to 0 when table becomes free
     if (newStatus === "free") {
-      updateData.current_guests = 0
+      updateData.current_guests = 0;
     }
 
     const { data, error } = await supabase
       .from("tables")
       .update(updateData)
       .eq("id", tableId)
-      .select()
+      .select();
 
     if (error) {
       console.error("Error updating table status:", error);
@@ -315,10 +329,36 @@ export async function updateTableStatus(
     }
 
     if (!data || data.length === 0) {
-      throw new Error(`No table found with ID: ${tableId}`)
+      throw new Error(`No table found with ID: ${tableId}`);
     }
   } catch (error) {
     console.error("Failed to update table status:", error);
+    throw error;
+  }
+}
+
+export async function getTableStatus(
+  tableId: string
+): Promise<DatabaseTableStatus> {
+  try {
+    const { data, error } = await supabase
+      .from("tables")
+      .select("status")
+      .eq("id", tableId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching table status:", error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error(`No table found with ID: ${tableId}`);
+    }
+
+    return data.status;
+  } catch (error) {
+    console.error("Failed to fetch table status:", error);
     throw error;
   }
 }
