@@ -60,8 +60,6 @@ export default function Header() {
     setShowQrDialog(true);
   };
 
-  console.log("currentTableStatus ------->", currentTableStatus);
-
   return (
     <header className="sticky top-0 z-10 bg-background">
       <div className="flex items-center justify-between h-16 w-full">

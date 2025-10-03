@@ -165,7 +165,7 @@ export default function Home() {
           {profile?.table_id && (
             <div className="flex items-start gap-2">
               <Button
-                className="bg-secondary text-white hover:bg-secondary/90 h-8 px-2 text-xs"
+                className="bg-primary text-white hover:bg-primary/20 h-8 px-2 text-xs"
                 onClick={() => simulateWaiterCall(profile?.table_id || "")}
               >
                 <HandPlatter className="h-4 w-4 mr-2" />
@@ -173,7 +173,7 @@ export default function Home() {
                 Llamar Mozo
               </Button>
               <Button
-                className="bg-secondary text-white hover:bg-secondary/90 h-8 px-2 text-xs"
+                className="bg-primary text-white hover:bg-primary/20 h-8 px-2 text-xs"
                 onClick={() => simulateBillRequest(profile?.table_id || "")}
               >
                 <ReceiptIcon className="h-4 w-4 mr-2" />
@@ -181,7 +181,7 @@ export default function Home() {
                 Pedir Cuenta
               </Button>
               <Button
-                className="bg-secondary text-white hover:bg-secondary/90 h-8 px-2 text-xs"
+                className="bg-primary text-white hover:bg-primary/20 h-8 px-2 text-xs"
                 onClick={() => simulateLeavingTip(profile?.table_id || "")}
               >
                 {/* Leaving tip */}
