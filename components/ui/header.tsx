@@ -85,7 +85,7 @@ export default function Header() {
                     Mesa {userInfo.table}
                   </Badge>
                 )}
-                {currentTableStatus && (
+                {userInfo.table && currentTableStatus && (
                   <Badge
                     variant="outline"
                     className={`ml-2 py-0 h-5 bg-primary/10 text-primary border-0 ${statusColors[currentTableStatus]}`}
