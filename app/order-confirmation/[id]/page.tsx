@@ -110,7 +110,6 @@ export default function OrderConfirmationPage() {
       return;
     }
     setPaymentLink(data.data?.payment_url || "");
-    console.log(data);
   };
 
   useEffect(() => {
