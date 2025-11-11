@@ -37,7 +37,11 @@ export default function HistoryPage() {
           throw new Error("Network response was not ok");
         }
         const data = await response.json();
-        setTransfers(data.data);
+        // Sort transfers by latest first
+        const sortedTransfers = data.data.sort((a: Transaction, b: Transaction) =>
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setTransfers(sortedTransfers);
       } catch (error) {
         console.error("Error fetching transfers:", error);
       }
@@ -46,16 +50,22 @@ export default function HistoryPage() {
     setIsLoading(false);
   }, [user]);
 
-  // Filter orders based on search query
+  // Filter orders based on search query and sort by latest first
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredOrders(orders);
-    } else {
-      const filtered = orders.filter((order) =>
+    let result = orders;
+
+    if (searchQuery.trim()) {
+      result = orders.filter((order) =>
         String(order.id).toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredOrders(filtered);
     }
+
+    // Sort by latest first (descending order)
+    const sorted = result.sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setFilteredOrders(sorted);
   }, [searchQuery, orders]);
 
   const getStatusBadge = (status: string) => {

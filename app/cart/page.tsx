@@ -271,8 +271,10 @@ export default function CartPage() {
     }
   }
 
-  // Filter delivered orders
-  const deliveredOrders = orders.filter(order => order.status.toLowerCase() === "delivered");
+  // Filter delivered orders and sort by latest first
+  const deliveredOrders = orders
+    .filter(order => order.status.toLowerCase() === "delivered")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   console.log("leng: ", cartItemList)
   return (
