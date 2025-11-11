@@ -52,14 +52,14 @@ export default function CartPage() {
   const [qrCodes, setQrCodes] = useState<QrCodeT[] | []>([]);
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (orders)
-      orders.map((order) => {
-        if (order.status != "delivered" && order.status !== "cancelled") {
-          router.push(`/order-confirmation/${order.id}`);
-        }
-      });
-  }, [orders]);
+  // useEffect(() => {
+  //   if (orders)
+  //     orders.map((order) => {
+  //       if (order.status != "delivered" && order.status !== "cancelled") {
+  //         router.push(`/order-confirmation/${order.id}`);
+  //       }
+  //     });
+  // }, [orders]);
 
   useEffect(() => {
     if (!profile?.qr_id) return;
