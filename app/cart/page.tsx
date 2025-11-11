@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   MenuIcon,
   ListIcon,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,8 @@ import { QrCodeT } from "@/utils/types";
 import { supabase } from "@/utils/supabase/client";
 import { formatArgentineNumber } from "@/utils/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function CartPage() {
   const router = useRouter();
@@ -100,8 +103,6 @@ export default function CartPage() {
       )
     );
   };
-
-  console.log("test")
 
   const subtotal = cartItemList.reduce(
     (sum, item) => sum + (item.product?.sale_price || 0) * item.quantity,
@@ -209,12 +210,70 @@ export default function CartPage() {
     });
     refreshSession();
   };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "delivered":
+        return (
+          <Badge variant="outline" className="text-green-600 hover:bg-green-100/20 border-green-500">
+            Entregado
+          </Badge>
+        )
+      case "pending":
+        return (
+          <Badge variant="outline" className="bg-yellow-100/10 text-yellow-600 hover:bg-yellow-100/10 border-yellow-500">
+            Pendiente
+          </Badge>
+        )
+      case 'preparing':
+        return (
+          <Badge variant="outline" className="bg-blue-100/10 text-blue-600 hover:bg-blue-100/10 border-blue-500">
+            Preparando
+          </Badge>
+        )
+      case "ready":
+        return (
+          <Badge variant="outline" className="bg-purple-100/10 text-purple-600 hover:bg-purple-100/10 border-purple-500">
+            Listo
+          </Badge>
+        )
+      case "cancelled":
+        return (
+          <Badge variant="outline" className="bg-red-100/10 text-red-600 hover:bg-red-100/10 border-red-500">
+            Cancelado
+          </Badge>
+        )
+      default:
+        return (
+          <Badge variant="outline" className="bg-gray-100/10 text-gray-600 hover:bg-gray-100/10 border-gray-500">
+            {status}
+          </Badge>
+        )
+    }
+  }
+
+  // Filter delivered orders
+  const deliveredOrders = orders.filter(order => order.status.toLowerCase() === "delivered");
+
   console.log("leng: ", cartItemList)
   return (
     <div className="flex flex-col bg-background">
       <main className="flex-1 container px-4 py-6">
         {cartItemList.length > 0 ? (
           <>
+            {/* Header with View Orders button */}
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold">Tu pedido</h1>
+              <Button
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
+                onClick={() => router.push("/history")}
+              >
+                <ListIcon className="w-4 h-4 mr-2" />
+                Ver pedidos
+              </Button>
+            </div>
+
             <Card className="mb-6 bg-card border-0 shadow-none">
               <CardContent className="p-4">
                 <div className="flex items-center mb-3">
@@ -448,30 +507,75 @@ export default function CartPage() {
             </Button>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-secondary rounded-full p-6 mb-4">
-              <QrCode className="w-10 h-10 text-muted-foreground" />
+          <div className="flex flex-col">
+            <div className="flex flex-col items-center justify-center text-center mb-8">
+              <div className="bg-secondary rounded-full p-6 mb-4">
+                <QrCode className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Tu pedido está vacío</h2>
+              <p className="text-muted-foreground mb-6">
+                Agrega productos desde el menú para comenzar tu pedido
+              </p>
+              <div className="flex gap-4">
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => router.push("/menu")}
+                >
+                  <MenuIcon />
+                  Ver menú
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={() => router.push("/history")}
+                >
+                  <ListIcon />
+                  Ver pedidos
+                </Button>
+              </div>
             </div>
-            <h2 className="text-xl font-bold mb-2">Tu pedido está vacío</h2>
-            <p className="text-muted-foreground mb-6">
-              Agrega productos desde el menú para comenzar tu pedido
-            </p>
-            <div className="flex gap-4">
-              <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => router.push("/menu")}
-              >
-                <MenuIcon />
-                Ver menú
-              </Button>
-              <Button
-                className="bg-[#141415] text-white hover:bg-[#141415]/90"
-                onClick={() => router.push("/history")}
-              >
-                <ListIcon />
-                View Orders
-              </Button>
-            </div>
+
+            {/* Delivered Orders Section */}
+            {deliveredOrders.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Pedidos entregados</h3>
+                <div className="space-y-4">
+                  {deliveredOrders.map((order) => (
+                    <Card
+                      key={order.id}
+                      className="cursor-pointer bg-card"
+                      onClick={() => router.push(`/order-confirmation/${order.id}`)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-medium">Pedido #{order.id}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(order.created_at), "dd/MM/yyyy, HH:mm")}
+                            </p>
+                          </div>
+                          {getStatusBadge(order.status)}
+                        </div>
+
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {order.order_items.map((item, index) => (
+                            <span key={index}>
+                              {item.quantity}x {item.products?.name}
+                              {index < order.order_items.length - 1 ? ", " : ""}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold">${order.total_amount.toFixed(2)}</span>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
