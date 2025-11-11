@@ -256,8 +256,6 @@ export default function OrderConfirmationPage() {
           // You could show a toast or modal here about the refund
           console.log(`Refund of $${order.total_amount} processed for order ${orderId}`);
         }
-
-        router.push("/menu");
       } else {
         const errorData = await response.json();
         console.error("Cancellation failed:", errorData.error);
