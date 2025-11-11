@@ -54,6 +54,7 @@ export default function CartPage() {
   const [selectedQrId, setSelectedQrId] = useState(profile?.qr_id?.id || "");
   const [qrCodes, setQrCodes] = useState<QrCodeT[] | []>([]);
   const [notes, setNotes] = useState("");
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1); // Step 1: Confirm Order, Step 2: Create Order
 
   // useEffect(() => {
   //   if (orders)
@@ -111,7 +112,25 @@ export default function CartPage() {
   const serviceCharge = subtotal * 0; // 10% service charge
   const total = subtotal + serviceCharge;
 
-  const confirmOrder = async () => {
+  const handleConfirmOrder = () => {
+    // Validate QR selection
+    if (!selectedQrId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debes seleccionar una barra para continuar",
+      });
+      return;
+    }
+    // Move to step 2
+    setCurrentStep(2);
+  };
+
+  const handleBackToStep1 = () => {
+    setCurrentStep(1);
+  };
+
+  const createOrder = async () => {
     setLoading(true);
 
     if (paymentMethod === "balance" && total > (profile?.balance || 0)) {
@@ -263,248 +282,311 @@ export default function CartPage() {
           <>
             {/* Header with View Orders button */}
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">Tu pedido</h1>
-              <Button
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-                onClick={() => router.push("/history")}
-              >
-                <ListIcon className="w-4 h-4 mr-2" />
-                Ver pedidos
-              </Button>
+              <h1 className="text-2xl font-bold">
+                {currentStep === 1 ? "Tu pedido" : "Método de pago"}
+              </h1>
+              {currentStep === 1 ? (
+                <Button
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={() => router.push("/history")}
+                >
+                  <ListIcon className="w-4 h-4 mr-2" />
+                  Ver pedidos
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={handleBackToStep1}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Volver
+                </Button>
+              )}
             </div>
 
-            <Card className="mb-6 bg-card border-0 shadow-none">
-              <CardContent className="p-4">
-                <div className="flex items-center mb-3">
-                  <MapPin className="w-5 h-5 text-primary mr-2" />
-                  <h2 className="font-medium">Punto de entrega</h2>
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center mb-6">
+              <div className="flex items-center">
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 1 ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'}`}>
+                  1
                 </div>
+                <div className={`w-16 h-1 mx-2 ${currentStep === 2 ? 'bg-primary' : 'bg-primary/20'}`}></div>
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${currentStep === 2 ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'}`}>
+                  2
+                </div>
+              </div>
+            </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                      <div>
-                        <p className="font-medium text-primary">
-                          Pedirás desde: {selectedQr?.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedQr?.location}
-                        </p>
+            {/* Step 1: Confirm Order */}
+            {currentStep === 1 && (
+              <>
+                <Card className="mb-6 bg-card border-0 shadow-none">
+                  <CardContent className="p-4">
+                    <div className="flex items-center mb-3">
+                      <MapPin className="w-5 h-5 text-primary mr-2" />
+                      <h2 className="font-medium">Punto de entrega</h2>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
+                          <div>
+                            <p className="font-medium text-primary">
+                              Pedirás desde: {selectedQr?.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedQr?.location}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="qr-select"
+                          className="text-sm text-muted-foreground"
+                        >
+                          ¿Te moviste? Cambia tu ubicación:
+                        </Label>
+                        <Select value={selectedQrId} onValueChange={handleQrChange}>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Seleccionar QR" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            {qrCodes.map((qr) => (
+                              <SelectItem
+                                key={qr?.id}
+                                value={qr?.id}
+                                className="hover:bg-secondary"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{qr?.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {qr?.location}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="qr-select"
-                      className="text-sm text-muted-foreground"
+                    {!selectedQrId && (
+                      <Alert className="mt-3 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20">
+                        <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        <AlertDescription className="text-orange-800 dark:text-orange-200">
+                          Debes seleccionar una barra para continuar con tu pedido.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+                <div className="mb-6">
+                  <h2 className="text-lg font-bold mb-4">Productos</h2>
+                  {cartItemList.map((item) => (
+                    <Card
+                      key={item.id}
+                      className="mb-3 bg-card border-0 shadow-none"
                     >
-                      ¿Te moviste? Cambia tu ubicación:
-                    </Label>
-                    <Select value={selectedQrId} onValueChange={handleQrChange}>
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue placeholder="Seleccionar QR" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        {qrCodes.map((qr) => (
-                          <SelectItem
-                            key={qr?.id}
-                            value={qr?.id}
-                            className="hover:bg-secondary"
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">{qr?.name}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {qr?.location}
-                              </span>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="font-medium">{item.product?.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              $
+                              {formatArgentineNumber(item.product?.sale_price || 0)}
+                            </p>
+                            {item.notes && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Nota: {item.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="flex items-center">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 bg-secondary border-0 hover:bg-secondary/80"
+                                onClick={() =>
+                                  updateQuantity(item.id, item.quantity - 1)
+                                }
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <input
+                                className="mx-2 font-medium w-14 text-center"
+                                value={item.quantity}
+                                type="number"
+                                onChange={(e) =>
+                                  updateQuantity(item.id, parseInt(e.target.value))
+                                }
+                                max={item.product?.stock || 0}
+                                min={1}
+                                style={{ backgroundColor: "transparent" }}
+                              />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 bg-secondary border-0 hover:bg-secondary/80"
+                                disabled={
+                                  item.product?.stock !== null
+                                    ? item.quantity >= (item.product?.stock ?? 0)
+                                    : false
+                                }
+
+                                onClick={() =>
+                                  updateQuantity(item.id, item.quantity + 1)
+                                }
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => editItem(item.id)}
+                              className="h-8 w-8"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeItem(item.id)}
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
 
-                {!selectedQrId && (
-                  <Alert className="mt-3 border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20">
-                    <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                    <AlertDescription className="text-orange-800 dark:text-orange-200">
-                      Debes seleccionar una barra para continuar con tu pedido.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-            <div className="mb-6">
-              <h2 className="text-lg font-bold mb-4">Productos</h2>
-              {cartItemList.map((item) => (
-                <Card
-                  key={item.id}
-                  className="mb-3 bg-card border-0 shadow-none"
-                >
+                <Card className="mb-6 bg-card border-0 shadow-none">
                   <CardContent className="p-4">
-                    <div className="flex justify-between">
-                      <div>
-                        <h3 className="font-medium">{item.product?.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          $
-                          {formatArgentineNumber(item.product?.sale_price || 0)}
-                        </p>
-                        {item.notes && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Nota: {item.notes}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <div className="flex items-center">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 bg-secondary border-0 hover:bg-secondary/80"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
-                            }
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <input
-                            className="mx-2 font-medium w-14 text-center"
-                            value={item.quantity}
-                            type="number"
-                            onChange={(e) =>
-                              updateQuantity(item.id, parseInt(e.target.value))
-                            }
-                            max={item.product?.stock || 0}
-                            min={1}
-                            style={{ backgroundColor: "transparent" }}
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 bg-secondary border-0 hover:bg-secondary/80"
-                            disabled={
-                              item.product?.stock !== null
-                                ? item.quantity >= (item.product?.stock ?? 0)
-                                : false
-                            }
-
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
-                            }
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => editItem(item.id)}
-                          className="h-8 w-8"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="h-8 w-8 text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="flex justify-between mb-2">
+                      <span>Subtotal</span>
+                      <span>${formatArgentineNumber(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span>Servicio (0%)</span>
+                      <span>${formatArgentineNumber(serviceCharge)}</span>
+                    </div>
+                    <Separator className="my-2 bg-border" />
+                    <div className="flex justify-between font-bold">
+                      <span>Total</span>
+                      <span>${formatArgentineNumber(total)}</span>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
 
-            <div className="mb-6">
-              <h2 className="text-lg font-bold mb-4">Método de pago</h2>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-                className="space-y-3"
-              >
-                <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
-                  <RadioGroupItem
-                    value="balance"
-                    id="balance"
-                    className="border-primary text-primary"
+                <div className="mb-6">
+                  <h2 className="font-medium mb-2">Notas especiales</h2>
+                  <Textarea
+                    placeholder="Ej: Sin hielo, extra limón, etc."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="bg-secondary border-border resize-none"
                   />
-                  <Label htmlFor="balance" className="flex-1">
-                    <div className="font-medium">Saldo en cuenta</div>
-                    <div className="text-sm text-muted-foreground">
-                      ${formatArgentineNumber(profile?.balance || 0)} disponible
-                    </div>
-                  </Label>
                 </div>
-                <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
-                  <RadioGroupItem
-                    value="mercadopago"
-                    id="mercadopago"
-                    className="border-primary text-primary"
-                  />
-                  <Label htmlFor="mercadopago" className="flex-1">
-                    <div className="font-medium">Tarjeta de crédito/débito</div>
-                    <div className="text-sm text-muted-foreground">
-                      Visa, Mastercard, etc.
-                    </div>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
-                  <RadioGroupItem
-                    value="cash"
-                    id="cash"
-                    className="border-primary text-primary"
-                  />
-                  <Label htmlFor="cash" className="flex-1">
-                    <div className="font-medium">Efectivo</div>
-                    <div className="text-sm text-muted-foreground">
-                      Pagar al mozo
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
 
-            <Card className="mb-6 bg-card border-0 shadow-none">
-              <CardContent className="p-4">
-                <div className="flex justify-between mb-2">
-                  <span>Subtotal</span>
-                  <span>${formatArgentineNumber(subtotal)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>Servicio (0%)</span>
-                  <span>${formatArgentineNumber(serviceCharge)}</span>
-                </div>
-                <Separator className="my-2 bg-border" />
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>${formatArgentineNumber(total)}</span>
-                </div>
-              </CardContent>
-            </Card>
+                <Button
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={handleConfirmOrder}
+                  disabled={!selectedQrId}
+                >
+                  Continuar al pago
+                </Button>
+              </>
+            )}
 
-            <div className="mb-6">
-              <h2 className="font-medium mb-2">Notas especiales</h2>
-              <Textarea
-                placeholder="Ej: Sin hielo, extra limón, etc."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="bg-secondary border-border resize-none"
-              />
-            </div>
+            {/* Step 2: Create Order (Payment Method) */}
+            {currentStep === 2 && (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-lg font-bold mb-4">Método de pago</h2>
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
+                      <RadioGroupItem
+                        value="balance"
+                        id="balance"
+                        className="border-primary text-primary"
+                      />
+                      <Label htmlFor="balance" className="flex-1">
+                        <div className="font-medium">Saldo en cuenta</div>
+                        <div className="text-sm text-muted-foreground">
+                          ${formatArgentineNumber(profile?.balance || 0)} disponible
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
+                      <RadioGroupItem
+                        value="mercadopago"
+                        id="mercadopago"
+                        className="border-primary text-primary"
+                      />
+                      <Label htmlFor="mercadopago" className="flex-1">
+                        <div className="font-medium">Tarjeta de crédito/débito</div>
+                        <div className="text-sm text-muted-foreground">
+                          Visa, Mastercard, etc.
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 border-0 bg-card rounded-lg p-3">
+                      <RadioGroupItem
+                        value="cash"
+                        id="cash"
+                        className="border-primary text-primary"
+                      />
+                      <Label htmlFor="cash" className="flex-1">
+                        <div className="font-medium">Efectivo</div>
+                        <div className="text-sm text-muted-foreground">
+                          Pagar al mozo
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-            <Button
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={confirmOrder}
-              disabled={loading}
-            >
-              {loading ? "Procesando..." : "Confirmar pedido"}
-            </Button>
+                <Card className="mb-6 bg-card border-0 shadow-none">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium mb-3">Resumen del pedido</h3>
+                    <div className="flex justify-between mb-2">
+                      <span>Subtotal</span>
+                      <span>${formatArgentineNumber(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span>Servicio (0%)</span>
+                      <span>${formatArgentineNumber(serviceCharge)}</span>
+                    </div>
+                    <Separator className="my-2 bg-border" />
+                    <div className="flex justify-between font-bold">
+                      <span>Total</span>
+                      <span>${formatArgentineNumber(total)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={createOrder}
+                  disabled={loading}
+                >
+                  {loading ? "Procesando..." : "Confirmar pedido"}
+                </Button>
+              </>
+            )}
           </>
         ) : (
           <div className="flex flex-col">
