@@ -559,7 +559,7 @@ export default function CartPage() {
                   </RadioGroup>
                 </div>
 
-                <Card className="mb-6 bg-card border-0 shadow-none">
+                {/* <Card className="mb-6 bg-card border-0 shadow-none">
                   <CardContent className="p-4">
                     <h3 className="font-medium mb-3">Resumen del pedido</h3>
                     <div className="flex justify-between mb-2">
@@ -576,7 +576,7 @@ export default function CartPage() {
                       <span>${formatArgentineNumber(total)}</span>
                     </div>
                   </CardContent>
-                </Card>
+                </Card> */}
 
                 <Button
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
