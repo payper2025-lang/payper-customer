@@ -23,6 +23,7 @@ export default function HistoryPage() {
   const [transfers, setTransfers] = useState<Transaction[]>([]);
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -44,6 +45,18 @@ export default function HistoryPage() {
     fetchTransfers();
     setIsLoading(false);
   }, [user]);
+
+  // Filter orders based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredOrders(orders);
+    } else {
+      const filtered = orders.filter((order) =>
+        String(order.id).toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredOrders(filtered);
+    }
+  }, [searchQuery, orders]);
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) { // Case-insensitive matching
@@ -138,7 +151,7 @@ export default function HistoryPage() {
               {isLoading ? (
                 <Loading />
               ) :
-                orders.map((order) => (
+                filteredOrders.map((order) => (
                   <Card
                     key={order.id}
                     className="cursor-pointer bg-card"
