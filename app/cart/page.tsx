@@ -101,6 +101,8 @@ export default function CartPage() {
     );
   };
 
+  console.log("test")
+
   const subtotal = cartItemList.reduce(
     (sum, item) => sum + (item.product?.sale_price || 0) * item.quantity,
     0
