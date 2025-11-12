@@ -43,7 +43,7 @@ export default function Footer() {
               </span>
             )}
           </div>
-          <span className="text-xs mt-1">Pedido</span>
+          <span className="text-xs mt-1">Carrito</span>
         </Button>
         <Button
           variant="ghost"

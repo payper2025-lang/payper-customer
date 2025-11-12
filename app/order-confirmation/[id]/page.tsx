@@ -15,6 +15,7 @@ import {
   ClockAlert,
   CreditCard,
   Clock10,
+  ListIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -502,6 +503,14 @@ export default function OrderConfirmationPage() {
           {/* Action Buttons */}
           <div className="space-y-3">
             <div className="flex gap-4">
+              <Button
+                variant="outline"
+                className="flex-1 bg-secondary border-0 hover:bg-secondary/80"
+                onClick={() => router.push("/cart?view=all")}
+              >
+                <ListIcon className="w-4 h-4 mr-2" />
+                Ver todos los pedidos
+              </Button>
               <Button
                 variant="outline"
                 className="flex-1 bg-secondary border-0 hover:bg-secondary/80"

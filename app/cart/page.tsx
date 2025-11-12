@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Trash2,
@@ -40,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function CartPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     cartItems,
     updateCartItems,
@@ -55,15 +56,6 @@ export default function CartPage() {
   const [qrCodes, setQrCodes] = useState<QrCodeT[] | []>([]);
   const [notes, setNotes] = useState("");
   const [currentStep, setCurrentStep] = useState<1 | 2>(1); // Step 1: Confirm Order, Step 2: Create Order
-
-  // useEffect(() => {
-  //   if (orders)
-  //     orders.map((order) => {
-  //       if (order.status != "delivered" && order.status !== "cancelled") {
-  //         router.push(`/order-confirmation/${order.id}`);
-  //       }
-  //     });
-  // }, [orders]);
 
   useEffect(() => {
     if (!profile?.qr_id) return;
@@ -86,6 +78,31 @@ export default function CartPage() {
       product: products.find((product) => product.id === item.id),
     };
   });
+
+  // Auto-redirect to active order if cart is empty
+  useEffect(() => {
+    if (!orders || orders.length === 0) return;
+
+    // Check if user wants to bypass auto-redirect (view=all query param)
+    const viewAll = searchParams.get('view') === 'all';
+    if (viewAll) return;
+
+    // Only redirect if cart is empty (user is not creating a new order)
+    if (cartItemList.length > 0) return;
+
+    // Find the most recent active order (pending, preparing, or ready)
+    const activeOrder = orders
+      .filter(order => {
+        const status = order.status.toLowerCase();
+        return status === "pending" || status === "preparing" || status === "ready";
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+    // If there's an active order, redirect to it
+    if (activeOrder) {
+      router.push(`/order-confirmation/${activeOrder.id}`);
+    }
+  }, [orders, cartItemList, router, searchParams]);
 
   const removeItem = (id: string) => {
     updateCartItems(cartItemList.filter((item) => item.id !== id));
@@ -270,10 +287,11 @@ export default function CartPage() {
         )
     }
   }
-
-  // Filter delivered orders and sort by latest first
-  const deliveredOrders = orders
-    .filter(order => order.status.toLowerCase() === "delivered")
+  const activeOrders = orders
+    .filter(order => {
+      const status = order.status.toLowerCase();
+      return status === "pending" || status === "preparing" || status === "ready";
+    })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   console.log("leng: ", cartItemList)
@@ -281,6 +299,7 @@ export default function CartPage() {
     <div className="flex flex-col bg-background">
       <main className="flex-1 container px-4 py-6">
         {cartItemList.length > 0 ? (
+          // Non-empty cart
           <>
             {/* Header with View Orders button */}
             <div className="flex justify-between items-center mb-6">
@@ -291,7 +310,7 @@ export default function CartPage() {
                 <Button
                   variant="outline"
                   className="border-primary text-primary hover:bg-primary/10"
-                  onClick={() => router.push("/history")}
+                  onClick={() => router.push("/cart?view=all")}
                 >
                   <ListIcon className="w-4 h-4 mr-2" />
                   Ver pedidos
@@ -591,12 +610,14 @@ export default function CartPage() {
             )}
           </>
         ) : (
+          // Empty cart state
           <div className="flex flex-col">
             <div className="flex flex-col items-center justify-center text-center mb-8">
               <div className="bg-secondary rounded-full p-6 mb-4">
                 <QrCode className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h2 className="text-xl font-bold mb-2">Tu pedido está vacío</h2>
+              <h2 className="text-xl font-bold mb-2">
+                Tu carrito está vacío</h2>
               <p className="text-muted-foreground mb-6">
                 Agrega productos desde el menú para comenzar tu pedido
               </p>
@@ -614,17 +635,17 @@ export default function CartPage() {
                   onClick={() => router.push("/history")}
                 >
                   <ListIcon />
-                  Ver pedidos
+                  Ver historias
                 </Button>
               </div>
             </div>
 
             {/* Delivered Orders Section */}
-            {deliveredOrders.length > 0 && (
+            {activeOrders.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-4">Pedidos entregados</h3>
+                <h3 className="text-lg font-semibold mb-4">Pedidos activos</h3>
                 <div className="space-y-4">
-                  {deliveredOrders.map((order) => (
+                  {activeOrders.map((order) => (
                     <Card
                       key={order.id}
                       className="cursor-pointer bg-card"
