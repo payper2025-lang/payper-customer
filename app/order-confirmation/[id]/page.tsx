@@ -528,7 +528,7 @@ export default function OrderConfirmationPage() {
             </div>
 
             {/* Cancel button - only show for pending/paying orders within cancellation window */}
-            {((order?.status === "pending" || order?.status === "paying") || canCancel) && (
+           {((order?.status === "pending" || order?.status === "paying") && canCancel) && (
               <Button
                 variant="outline"
                 className="w-full border-red-800 bg-red-900/10 text-red-500 hover:bg-red-900/20 hover:text-red-400"
