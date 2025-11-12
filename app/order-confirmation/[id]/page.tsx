@@ -545,7 +545,7 @@ export default function OrderConfirmationPage() {
                 <div className="flex items-center text-orange-500">
                   <Clock className="w-4 h-4 mr-2" />
                   <span className="text-sm">
-                    El tiempo para cancelar ha expirado. Tu pedido está en suspensión y será procesado.
+                    El plazo de cancelación ha expirado. Su pedido está en espera y ya ha sido procesado.
                   </span>
                 </div>
               </div>
