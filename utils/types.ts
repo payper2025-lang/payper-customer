@@ -132,3 +132,27 @@ export interface Table {
     updated_at: string;
 }
 
+// Module types for tenant module system
+export type ModuleKey =
+  | 'qrmenu'           // Main QRMENU module
+  | 'complimentary_gifts'  // Courtesy/Gifts functionality
+  | 'add_balance';  // Add balance functionality
+
+export interface AppsRegistry {
+    id: string;
+    key: ModuleKey;
+    name: string;
+    description: string;
+    is_core: boolean;
+    created_at: string;
+}
+
+export interface TenantModule {
+    id: string;
+    tenant_id: string;
+    app_id: string;
+    enabled: boolean;
+    activated_at: string | null;
+    created_at: string;
+    apps_registry?: AppsRegistry | null;
+}

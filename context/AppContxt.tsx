@@ -8,7 +8,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { CartItem, Product, Gift, Order, Inventory } from "@/utils/types";
+import { CartItem, Product, Gift, Order, Inventory, TenantModule, ModuleKey } from "@/utils/types";
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/utils/supabase/client";
 import { getTableStatus } from "@/app/api/tables/route";
@@ -27,6 +27,10 @@ interface AppContextType {
   fetchInventories: (barId: string) => Promise<void>;
   currentTableStatus: DatabaseTableStatus;
   fetchTableStatus: () => Promise<void>;
+  tenantModules: TenantModule[];
+  tenantModulesLoading: boolean;
+  isModuleEnabled: (moduleKey: ModuleKey) => boolean;
+  fetchTenantModules: () => Promise<void>;
 }
 
 export type DatabaseTableStatus =
@@ -50,7 +54,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, profile } = useAuth();
   const [currentTableStatus, setCurrentTableStatus] =
     useState<DatabaseTableStatus>("free");
-
+  const [tenantModules, setTenantModules] = useState<TenantModule[]>([]);
+  const [tenantModulesLoading, setTenantModulesLoading] = useState(false);
+  const TENANT_ID = "0af64252-5332-4769-8952-05f87f999dda"
   const updateCartItems = useCallback(async (items: CartItem[]) => {
     setCartItems(items);
   }, []);
@@ -128,6 +134,88 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setInventories([]);
     }
   }, []);
+
+  const fetchTenantModules = useCallback(async () => {
+    if (!user?.id) {
+      console.log("⚠️ No user ID, skipping tenant modules fetch");
+      return;
+    }
+
+    try {
+      setTenantModulesLoading(true);
+
+      // Fetch tenant_modules without apps_registry join
+      const { data: modulesData, error: modulesError } = await supabase
+        .from("tenant_modules")
+        .select("*")
+        .eq("tenant_id", TENANT_ID);
+
+      if (modulesError) {
+        console.error("❌ Error fetching tenant_modules:", modulesError);
+        throw modulesError;
+      }
+
+      console.log("📦 Fetched tenant modules:", modulesData);
+
+      // Collect all unique app_ids
+      const appIds = modulesData
+        ?.map((m) => m.app_id)
+        .filter((id): id is string => !!id) || [];
+
+      // Fetch apps_registry data separately
+      let appsData: any[] = [];
+      if (appIds.length > 0) {
+        const { data, error: appsError } = await supabase
+          .from("apps_registry")
+          .select("id, key, name, description, is_core")
+          .in("id", appIds);
+
+        if (appsError) {
+          console.error("❌ Error fetching apps_registry:", appsError);
+        } else {
+          appsData = data || [];
+          console.log("📋 Fetched apps registry:", appsData);
+        }
+      }
+
+      // Merge the data manually
+      const mergedModules = modulesData?.map((module) => ({
+        ...module,
+        apps_registry: appsData.find((app) => app.id === module.app_id) || null,
+      })) || [];
+
+      console.log("✅ Merged tenant modules:", mergedModules);
+      setTenantModules(mergedModules);
+    } catch (error) {
+      console.error("❌ Error in fetchTenantModules:", error);
+      setTenantModules([]);
+    } finally {
+      setTenantModulesLoading(false);
+    }
+  }, [user?.id]);
+
+  const isModuleEnabled = useCallback(
+    (moduleKey: ModuleKey): boolean => {
+      const module = tenantModules.find(
+        (m) => m.apps_registry?.key === moduleKey
+      );
+
+      if (!module) {
+        console.warn(`⚠️ Module '${moduleKey}' not found in tenant modules`);
+        return false;
+      }
+
+      return module.enabled;
+    },
+    [tenantModules]
+  );
+
+  // Fetch tenant modules when user changes
+  useEffect(() => {
+    if (user?.id) {
+      fetchTenantModules();
+    }
+  }, [user?.id, fetchTenantModules]);
 
   useEffect(() => {
     if (!profile?.table_id) return;
@@ -242,6 +330,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       fetchInventories,
       currentTableStatus,
       fetchTableStatus,
+      tenantModules,
+      tenantModulesLoading,
+      isModuleEnabled,
+      fetchTenantModules,
     }),
     [
       cartItems,
@@ -257,6 +349,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       fetchInventories,
       currentTableStatus,
       fetchTableStatus,
+      tenantModules,
+      tenantModulesLoading,
+      isModuleEnabled,
+      fetchTenantModules,
     ]
   );
 
